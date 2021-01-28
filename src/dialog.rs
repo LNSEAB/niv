@@ -4,12 +4,14 @@ use std::path::PathBuf;
 use winapi::shared::winerror::*;
 use winapi::shared::wtypesbase::*;
 use winapi::um::combaseapi::*;
-use winapi::um::objbase::*;
 use winapi::um::shobjidl::*;
 use winapi::um::shobjidl_core::*;
 use winapi::um::shtypes::*;
 
-unsafe fn file_open_dialog_impl(extensions: &Vec<String>) -> Result<Option<PathBuf>, Error> {
+unsafe fn file_open_dialog_impl(
+    wnd: &wita::Window,
+    extensions: &Vec<String>,
+) -> Result<Option<PathBuf>, Error> {
     let dialog =
         co_create_instance::<IFileOpenDialog>(&CLSID_FileOpenDialog, None, CLSCTX_INPROC_SERVER)?;
     let ext_name = "画像ファイル"
@@ -28,7 +30,7 @@ unsafe fn file_open_dialog_impl(extensions: &Vec<String>) -> Result<Option<PathB
         pszSpec: ext_spec.as_ptr(),
     };
     dialog.SetFileTypes(1, &dlg);
-    let ret = dialog.Show(std::ptr::null_mut());
+    let ret = dialog.Show(wnd.raw_handle() as _);
     if ret != S_OK {
         if ret == HRESULT_FROM_WIN32(ERROR_CANCELLED) {
             return Ok(None);
@@ -54,16 +56,10 @@ unsafe fn file_open_dialog_impl(extensions: &Vec<String>) -> Result<Option<PathB
     Ok(Some(path.into()))
 }
 
-pub fn file_open_dialog(extensions: &Vec<String>) -> Result<Option<PathBuf>, Error> {
+pub fn file_open_dialog(
+    wnd: &wita::Window,
+    extensions: &Vec<String>,
+) -> Result<Option<PathBuf>, Error> {
     let exts = extensions.clone();
-    let handle = std::thread::spawn(move || unsafe {
-        CoInitializeEx(
-            std::ptr::null_mut(),
-            COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE,
-        );
-        let path = file_open_dialog_impl(&exts);
-        CoUninitialize();
-        path
-    });
-    handle.join().unwrap()
+    unsafe { file_open_dialog_impl(wnd, &exts) }
 }

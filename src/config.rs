@@ -121,10 +121,7 @@ impl Default for Config {
                         vec![wita::VirtualKey::Right],
                     ],
                 ),
-                KeyBinding::new(
-                    Method::PrintMemory,
-                    vec![vec![wita::VirtualKey::F(1)]]
-                )
+                KeyBinding::new(Method::PrintMemory, vec![vec![wita::VirtualKey::F(1)]]),
             ],
         }
     }

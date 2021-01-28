@@ -108,7 +108,7 @@ impl Application {
             file,
         ));
         if let Some(current) = self.dir.as_ref().unwrap().current() {
-            let wnd = self.wnd.proxy();
+            let wnd = self.wnd.clone();
             let dc = self.renderer.device_context();
             self.images.load(dc, current, move |_| wnd.redraw());
         }
@@ -129,7 +129,13 @@ impl Application {
 }
 
 impl wita::EventHandler for Application {
-    fn key_input(&mut self, wnd: &wita::Window, _: wita::KeyCode, state: wita::KeyState, prev_pressed: bool) {
+    fn key_input(
+        &mut self,
+        _: &wita::Window,
+        _: wita::KeyCode,
+        state: wita::KeyState,
+        prev_pressed: bool,
+    ) {
         match state {
             wita::KeyState::Pressed => {
                 if !prev_pressed {
@@ -162,7 +168,7 @@ impl wita::EventHandler for Application {
                             if let Some(path) = path {
                                 let t = std::time::Instant::now();
                                 if t - self.pressed_time <= self.keyboard_delay {
-                                    let wnd = self.wnd.proxy();
+                                    let wnd = self.wnd.clone();
                                     self.images.load(
                                         self.renderer.device_context(),
                                         &path,
@@ -187,8 +193,8 @@ impl wita::EventHandler for Application {
                 if let Some(method) = method {
                     match method {
                         Method::Open => {
-                            let path =
-                                file_open_dialog(&self.config.extensions).unwrap_or_else(|e| {
+                            let path = file_open_dialog(&self.wnd, &self.config.extensions)
+                                .unwrap_or_else(|e| {
                                     error!("open_dialog: {}", e);
                                     None
                                 });
@@ -201,8 +207,8 @@ impl wita::EventHandler for Application {
                             if let Some(dir) = self.dir.as_mut() {
                                 let dc = self.renderer.device_context();
                                 let path = dir.current().unwrap();
-                                let proxy = wnd.proxy();
-                                self.images.load(dc, &path, move |_| proxy.redraw());
+                                let wnd = self.wnd.clone();
+                                self.images.load(dc, &path, move |_| wnd.redraw());
                                 debug!("released key: load: {}", path.to_string_lossy());
                             }
                         }
@@ -257,7 +263,7 @@ impl wita::EventHandler for Application {
             &self.config.background,
             img,
             self.config.interpolation,
-            text
+            text,
         );
     }
 
